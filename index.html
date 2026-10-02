@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Monica relationship graph</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #edf0f4;
+    --surface: #f9fafc;
+    --ink: #1c2530;
+    --ink-soft: #5b6877;
+    --line: #cfd6df;
+    --me: #e3a008;
+    --node: #fdfdfe;
+    --family: #2f6fb0;
+    --love: #c2477a;
+    --friend: #2f9577;
+    --work: #7a6ab8;
+    --other: #8a93a0;
+    --danger: #b3261e;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #161c24;
+      --surface: #1f2731;
+      --ink: #e8edf3;
+      --ink-soft: #99a6b5;
+      --line: #36424f;
+      --me: #f2b51d;
+      --node: #28323e;
+      --family: #6aa3e0;
+      --love: #e57ba5;
+      --friend: #5fc4a2;
+      --work: #a99bdf;
+      --other: #8f9aa8;
+      --danger: #f2877f;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font: 400 15px/1.45 "Bricolage Grotesque", system-ui, sans-serif;
+    overflow: hidden;
+  }
+  button, input { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--family); outline-offset: 2px; }
+
+  #graph, #graph3d { position: fixed; inset: 0; }
+  .labels3d { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+  .label3d {
+    position: absolute; left: 0; top: 0; white-space: nowrap; font-size: 12px; font-weight: 600;
+    color: var(--ink); text-shadow: 0 0 3px var(--paper), 0 0 3px var(--paper), 0 0 7px var(--paper);
+  }
+  .label3d.me { font-size: 15px; font-weight: 800; }
+
+  header {
+    position: fixed; top: 12px; left: 12px; right: 12px; z-index: 5;
+    display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center;
+    padding: 8px 14px; background: var(--surface);
+    border: 1px solid var(--line); border-radius: 12px;
+  }
+  header h1 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -0.01em; }
+  header input[type="search"] {
+    flex: 1 1 180px; max-width: 320px; padding: 6px 10px;
+    background: var(--paper); border: 1px solid var(--line); border-radius: 8px;
+  }
+  header label { display: inline-flex; gap: 6px; align-items: center; color: var(--ink-soft); cursor: pointer; }
+  header .spacer { flex: 1; }
+  button {
+    padding: 6px 12px; background: var(--ink); color: var(--paper);
+    border: 0; border-radius: 8px; cursor: pointer; font-weight: 600;
+  }
+  button.quiet { background: transparent; color: var(--ink-soft); border: 1px solid var(--line); }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .seg button { border-radius: 0; background: transparent; color: var(--ink-soft); }
+  .seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+
+  #legend {
+    position: fixed; left: 12px; bottom: 12px; z-index: 5;
+    display: flex; flex-direction: column; gap: 4px; padding: 10px 14px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+  }
+  #legend:empty { display: none; }
+  #legend label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+  #legend .swatch { width: 22px; height: 4px; border-radius: 2px; }
+
+  #details {
+    position: fixed; right: 12px; bottom: 12px; z-index: 5; width: min(320px, calc(100vw - 24px));
+    max-height: 50vh; overflow: auto; padding: 14px 16px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+  }
+  #details h2 { margin: 0 0 8px; font-size: 18px; font-weight: 800; letter-spacing: -0.01em; }
+  #details ul { margin: 0 0 10px; padding: 0; list-style: none; }
+  #details li { display: flex; gap: 8px; align-items: baseline; padding: 3px 0; }
+  #details li .kind { color: var(--ink-soft); min-width: 5.5em; }
+  #details a { color: var(--family); font-weight: 600; }
+
+  #tooltip {
+    position: fixed; z-index: 6; pointer-events: none; padding: 4px 8px; font-size: 13px;
+    background: var(--ink); color: var(--paper); border-radius: 6px;
+  }
+
+  #status {
+    position: fixed; bottom: 170px; left: 12px; z-index: 5;
+    max-width: min(340px, calc(100vw - 24px)); padding: 8px 14px; border-radius: 10px;
+    background: var(--surface); border: 1px solid var(--line);
+  }
+  #status.error { border-color: var(--danger); color: var(--danger); }
+  #status details { color: var(--ink-soft); margin-top: 4px; }
+  progress { width: 100%; margin-top: 6px; accent-color: var(--friend); }
+
+  dialog {
+    width: min(420px, calc(100vw - 24px)); padding: 22px; border: 1px solid var(--line);
+    border-radius: 14px; background: var(--surface); color: var(--ink);
+  }
+  dialog::backdrop { background: rgb(20 26 34 / 0.5); }
+  dialog h2 { margin: 0 0 4px; font-size: 22px; font-weight: 800; letter-spacing: -0.015em; }
+  dialog p { margin: 0 0 14px; color: var(--ink-soft); }
+  dialog label.field { display: block; margin-bottom: 12px; font-weight: 600; }
+  dialog input[type="text"], dialog input[type="password"], dialog input[type="url"] {
+    display: block; width: 100%; margin-top: 4px; padding: 8px 10px; font-weight: 400;
+    background: var(--paper); border: 1px solid var(--line); border-radius: 8px;
+  }
+  dialog .remember { display: flex; gap: 8px; align-items: center; margin-bottom: 16px; color: var(--ink-soft); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div id="graph" role="img" aria-label="Graph of your Monica contacts and their relationships"></div>
+<div id="graph3d" role="img" aria-label="3D graph of your Monica contacts and their relationships" hidden></div>
+
+<header>
+  <h1>Relationship graph</h1>
+  <input id="search" type="search" placeholder="Find a person" aria-label="Find a person" autocomplete="off">
+  <label><input id="hide-isolated" type="checkbox"> Hide people without relationships</label>
+  <span class="spacer"></span>
+  <div class="seg" role="group" aria-label="View">
+    <button id="mode-2d" type="button" aria-pressed="true">2D</button>
+    <button id="mode-3d" type="button" aria-pressed="false">3D</button>
+  </div>
+  <button id="reconnect" class="quiet" type="button">Connect</button>
+</header>
+
+<div id="legend" aria-label="Relationship categories"></div>
+<aside id="details" hidden></aside>
+<div id="tooltip" hidden></div>
+<div id="status" role="status" hidden></div>
+
+<dialog id="connect">
+  <form method="dialog" id="connect-form">
+    <h2>Connect to Monica</h2>
+    <p>Create a personal access token in Monica under Settings → API. The token is sent only to your Monica server.</p>
+    <label class="field">Monica URL
+      <input id="base-url" type="url" required placeholder="https://monica.example.com" autocomplete="url">
+    </label>
+    <label class="field">Personal access token
+      <input id="token" type="password" required autocomplete="off">
+    </label>
+    <label class="remember"><input id="remember" type="checkbox"> Remember the token in this browser</label>
+    <button type="submit">Load graph</button>
+  </form>
+</dialog>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.2/cytoscape.min.js"
+        integrity="sha384-IWROdLKRsN1UuJywMlWl7/blXQ8GEooN2n7dzTxfEPd7ybYIKCUJ2Ol/1Gpf3YV4"
+        crossorigin="anonymous"></script>
+<!-- fcose force layout and its dependencies, in dependency order -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/layout-base/2.0.1/layout-base.js"
+        integrity="sha384-5E2lB9AIGE6LRCnOOSTnZRlYZFZ01iMeN2fw97Z1r4Z/kXALxKw2AC+ZzQqoeDsG"
+        crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/cose-base@2.2.0/cose-base.js"
+        integrity="sha384-RswRBkrMsPUYpJLbZ1CVA08zbNzAkykE2oGJTujBwfjWNdfxv2WVjLJNqv1LhAOp"
+        crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/cytoscape-fcose@2.2.0/cytoscape-fcose.js"
+        integrity="sha384-uk5Wbjq1+KqUdHO30w7N7GrEGdzBhaJeW9o/ANF6v9+yx3M/cBmoX51C000JNCUf"
+        crossorigin="anonymous"></script>
+<script type="module" src="app.js"></script>
+</body>
+</html>
