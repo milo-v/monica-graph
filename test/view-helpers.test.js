@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { visibleGraph, relationsOf, withAlpha } from '../monica.js';
+import { visibleGraph, relationsOf, withAlpha, pickRandomPerson } from '../monica.js';
 
 const node = (id, label, isMe = false) => ({ id, label, isMe });
 const edge = (source, target, category, label = 'friend') => ({ id: `${source}-${target}`, source, target, category, label });
@@ -65,4 +65,19 @@ test('withAlpha turns hex and rgb colours into rgba', () => {
 
 test('withAlpha returns an unrecognised colour unchanged', () => {
   assert.equal(withAlpha('rebeccapurple', 0.3), 'rebeccapurple');
+});
+
+test('pickRandomPerson can pick "me"', () => {
+  const people = [node('me', 'Me', true), node('a', 'Ann'), node('b', 'Bob')];
+  assert.equal(pickRandomPerson(people, () => 0).id, 'me');
+  assert.equal(pickRandomPerson(people, () => 0.5).id, 'a');
+  assert.equal(pickRandomPerson(people, () => 0.999).id, 'b');
+});
+
+test('pickRandomPerson returns undefined when nobody is visible', () => {
+  assert.equal(pickRandomPerson([]), undefined);
+});
+
+test('pickRandomPerson stays in range even if random() returns 1', () => {
+  assert.equal(pickRandomPerson([node('a', 'Ann'), node('b', 'Bob')], () => 1).id, 'b');
 });

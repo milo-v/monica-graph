@@ -159,6 +159,13 @@ export function visibleGraph(graph, { hiddenCategories, hideIsolated }) {
   return { nodes, edges };
 }
 
+// A random person from the visible graph, "me" included. `random` is injectable for tests.
+// Returns undefined when there is nobody to pick.
+export function pickRandomPerson(visibleNodes, random = Math.random) {
+  if (!visibleNodes.length) return undefined;
+  return visibleNodes[Math.min(visibleNodes.length - 1, Math.floor(random() * visibleNodes.length))];
+}
+
 // One row per relationship of a person: what it is, and who it is with.
 export function relationsOf(graph, id) {
   const label = new Map(graph.nodes.map((n) => [n.id, n.label]));
