@@ -67,14 +67,14 @@ test('withAlpha returns an unrecognised colour unchanged', () => {
   assert.equal(withAlpha('rebeccapurple', 0.3), 'rebeccapurple');
 });
 
-test('pickRandomPerson never picks "me"', () => {
+test('pickRandomPerson can pick "me"', () => {
   const people = [node('me', 'Me', true), node('a', 'Ann'), node('b', 'Bob')];
-  assert.equal(pickRandomPerson(people, () => 0).id, 'a');
+  assert.equal(pickRandomPerson(people, () => 0).id, 'me');
+  assert.equal(pickRandomPerson(people, () => 0.5).id, 'a');
   assert.equal(pickRandomPerson(people, () => 0.999).id, 'b');
 });
 
-test('pickRandomPerson returns undefined when nobody else is visible', () => {
-  assert.equal(pickRandomPerson([node('me', 'Me', true)]), undefined);
+test('pickRandomPerson returns undefined when nobody is visible', () => {
   assert.equal(pickRandomPerson([]), undefined);
 });
 
