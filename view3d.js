@@ -253,7 +253,11 @@ export function createView3d(container, { onSelect, onClear }) {
     // Select the first visible person whose name contains the text, and fly the camera to them.
     find(query) {
       const q = query.trim().toLowerCase();
-      const match = nodes.find((n) => shown.nodes.has(n.id) && n.label.toLowerCase().includes(q));
+      return this.focus(nodes.find((n) => shown.nodes.has(n.id) && n.label.toLowerCase().includes(q))?.id);
+    },
+    // Select the visible person with this id and fly the camera to them.
+    focus(id) {
+      const match = nodes.find((n) => n.id === id && shown.nodes.has(n.id));
       if (!match) return false;
       select(match.id);
       // Approach along the line from "me" through the person, stopping a little beyond them, so "me"

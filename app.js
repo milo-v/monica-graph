@@ -1,4 +1,4 @@
-import { createClient, loadAll, buildGraph, relationsOf, visibleGraph, AuthError, NetworkError } from './monica.js';
+import { createClient, loadAll, buildGraph, relationsOf, visibleGraph, pickRandomPerson, AuthError, NetworkError } from './monica.js';
 import { createView3d } from './view3d.js';
 
 const $ = (id) => document.getElementById(id);
@@ -282,6 +282,18 @@ $('search').addEventListener('input', (e) => {
   cy.animate({ center: { eles: match }, zoom: Math.max(cy.zoom(), 1.2) }, { duration: 250 });
 });
 $('hide-isolated').addEventListener('change', applyFilters);
+
+// ---------- random person ----------
+$('random').addEventListener('click', () => {
+  if (!currentGraph) return setStatus('Connect to Monica first.', { error: true });
+  const person = pickRandomPerson(visibleGraph(currentGraph, filterOptions()).nodes);
+  if (!person) return setStatus('There is nobody to pick.', { error: true });
+  $('search').value = '';
+  if (mode === '3d') { view3d.focus(person.id); return; }
+  const node = cy.getElementById(person.id);
+  selectNode(node);
+  cy.animate({ center: { eles: node }, zoom: Math.max(cy.zoom(), 1.2) }, { duration: 250 });
+});
 
 // ---------- connect flow ----------
 function openConnect() {
